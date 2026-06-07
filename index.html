@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Media Recommender</title>
+    <link rel="icon" href="logo.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=5">
+</head>
+<body>
+
+    <div class="bg-blobs" aria-hidden="true"><span class="b1"></span><span class="b2"></span><span class="b3"></span></div>
+
+    <header class="topbar">
+        <img src="logo.svg" alt="Logo" class="topbar-logo">
+        <h1>Media Recommender</h1>
+    </header>
+
+    <div class="stage" id="stage">
+
+        
+        <div class="panel panel-input" id="panel-input">
+            <div class="card">
+                <h2>What are you in the mood for?</h2>
+
+                <div class="type-row">
+                    <button class="type-btn active" data-type="movie" aria-pressed="true">Movie</button>
+                    <button class="type-btn" data-type="tv" aria-pressed="false">TV Show</button>
+                    <button class="type-btn" data-type="anime" aria-pressed="false">Anime</button>
+                </div>
+
+                <div class="genre-section">
+                    <p class="genre-label">Genre <span class="optional">(optional)</span></p>
+                    <div class="genre-grid" id="genre-grid"></div>
+                </div>
+
+                <button class="btn btn-primary" id="btn-recommend">
+                    <span id="btn-text">Recommend me something</span>
+                </button>
+            </div>
+        </div>
+
+        
+        <div class="panel panel-result" id="panel-result" aria-live="polite">
+
+            <div class="card result-card" id="result-card">
+                <div id="result-inner"></div>
+                <div class="result-actions">
+                    <button class="btn btn-primary" id="btn-watchlist">+ Watchlist</button>
+                    <button class="btn btn-secondary" id="btn-again">Try another</button>
+                    <button class="btn btn-secondary" id="btn-share">Share</button>
+                </div>
+            </div>
+
+            <div class="card watchlist-card" id="watchlist-card" style="display:none;">
+                <div class="watchlist-header">
+                    <h2 style="margin-bottom:0; border:none; padding:0;">Watchlist</h2>
+                    <div style="display:flex; gap:4px; align-items:center;">
+                        <button class="btn-icon" id="btn-shuffle-watchlist" title="Shuffle: pick a random title from your watchlist" aria-label="Pick a random title from your watchlist">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
+                        </button>
+                        <button class="btn-icon" id="btn-import-watchlist" title="Import watchlist (.json/.csv/.txt)" aria-label="Import watchlist">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        </button>
+                        <button class="btn-icon btn-icon-text" id="btn-export-watchlist" title="Export as .txt" aria-label="Export watchlist as text">TXT</button>
+                        <button class="btn-icon btn-icon-text" id="btn-export-csv" title="Export as .csv" aria-label="Export watchlist as CSV">CSV</button>
+                        <button class="btn-icon btn-icon-text" id="btn-export-json" title="Export as .json" aria-label="Export watchlist as JSON">JSON</button>
+                        <button class="btn-icon" id="btn-clear-watchlist" title="Clear all" aria-label="Clear watchlist">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                        </button>
+                        <input type="file" id="import-input" accept=".json,.csv,.txt" hidden>
+                    </div>
+                </div>
+                <ul class="watchlist" id="watchlist"></ul>
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
