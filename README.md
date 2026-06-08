@@ -84,6 +84,20 @@ Open `index.html` in any modern browser, or visit [mediarec.drew-gnr.xyz](https:
 
 ---
 
+## Get the Code
+
+Clone with git:
+
+```bash
+git clone https://github.com/drew-codes-things/MediaSuggest.git
+```
+
+Or with the [GitHub CLI](https://cli.github.com/):
+
+```bash
+gh repo clone drew-codes-things/MediaSuggest
+```
+
 ## License
 
 MIT - made by [Drew](https://github.com/drew-codes-things)

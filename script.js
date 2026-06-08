@@ -26,9 +26,9 @@ const GENRES = {
     ]
 };
 
-let selectedType  = 'movie';
-let selectedGenre = null;
-let loading       = false;
+let selectedType   = 'movie';
+let selectedGenres = new Set();
+let loading        = false;
 let lastResult    = null;
 let seenTitles    = [];
 let watchlist     = [];
@@ -76,7 +76,7 @@ function showToast(msg, success = false) {
 
 function buildGenreButtons(type) {
     genreGrid.innerHTML = '';
-    selectedGenre = null;
+    selectedGenres.clear();
     const list = type === 'anime'
         ? GENRES.anime.map(g => g.name)
         : GENRES[type];
@@ -86,25 +86,36 @@ function buildGenreButtons(type) {
         btn.textContent = g.charAt(0).toUpperCase() + g.slice(1);
         btn.dataset.genre = g;
         btn.addEventListener('click', () => {
-            if (btn.classList.contains('active')) {
+            if (selectedGenres.has(g)) {
+                selectedGenres.delete(g);
                 btn.classList.remove('active');
-                selectedGenre = null;
             } else {
-                document.querySelectorAll('.genre-btn').forEach(b => b.classList.remove('active'));
+                selectedGenres.add(g);
                 btn.classList.add('active');
-                selectedGenre = g;
             }
         });
         genreGrid.appendChild(btn);
     });
 }
 
+function showSkeleton() {
+    if (!stage.classList.contains('has-result')) stage.classList.add('has-result');
+    resultInner.innerHTML = `
+        <div class="skel skel-poster"></div>
+        <div class="skel skel-title"></div>
+        <div class="skel skel-meta"></div>
+        <div class="skel skel-line"></div>
+        <div class="skel skel-line skel-short"></div>
+        <div class="skel skel-line skel-shorter"></div>
+    `;
+    resultCard.querySelector('.result-actions').style.visibility = 'hidden';
+}
+
 function setLoading(on) {
     loading = on;
     btnRecommend.disabled = on;
-    btnText.innerHTML = on
-        ? '<span class="spinner"></span> Finding something...'
-        : 'Recommend me something';
+    btnText.textContent = on ? 'Finding something...' : 'Recommend me something';
+    if (on) showSkeleton();
 }
 
 function showResult({ title, year, score, genres, desc, poster, type }) {
@@ -129,6 +140,7 @@ function showResult({ title, year, score, genres, desc, poster, type }) {
         <p class="result-desc">${desc || 'No description available.'}</p>
     `;
 
+    resultCard.querySelector('.result-actions').style.visibility = '';
     if (!stage.classList.contains('has-result')) {
         stage.classList.add('has-result');
     } else {
@@ -140,6 +152,7 @@ function showResult({ title, year, score, genres, desc, poster, type }) {
 
 function showError(msg) {
     resultInner.innerHTML = `<p class="error-msg">${msg}</p>`;
+    resultCard.querySelector('.result-actions').style.visibility = '';
     stage.classList.add('has-result');
 }
 
@@ -232,6 +245,7 @@ function mergeImported(items) {
     let added = 0;
     items.forEach(it => {
         if (!it || !it.title) return;
+        if (!it.type) it.type = 'movie';
         if (watchlist.some(w => w.title === it.title && w.type === it.type)) return;
         watchlist.push(it);
         added++;
@@ -346,12 +360,13 @@ function renderWatchlist() {
 
 async function fetchAnime() {
     let maxPages = 5;
-    if (selectedGenre) {
-        const genreObj = GENRES.anime.find(g => g.name === selectedGenre);
-        const gid = genreObj ? genreObj.id : 1;
+    const genreObjs = GENRES.anime.filter(g => selectedGenres.has(g.name));
+    const gidsParam = genreObjs.map(g => g.id).join(',');
+
+    if (gidsParam) {
         try {
             const infoRes = await fetch(
-                `${CONFIG.JIKAN_BASE}/anime?genres=${gid}&order_by=score&sort=desc&min_score=7&limit=1`
+                `${CONFIG.JIKAN_BASE}/anime?genres=${gidsParam}&order_by=score&sort=desc&min_score=7&limit=1`
             );
             if (infoRes.ok) {
                 const info = await infoRes.json();
@@ -363,10 +378,8 @@ async function fetchAnime() {
 
     const page = Math.floor(Math.random() * maxPages) + 1;
     let url;
-    if (selectedGenre) {
-        const genreObj = GENRES.anime.find(g => g.name === selectedGenre);
-        const gid = genreObj ? genreObj.id : 1;
-        url = `${CONFIG.JIKAN_BASE}/anime?genres=${gid}&order_by=score&sort=desc&min_score=7&page=${page}&limit=25`;
+    if (gidsParam) {
+        url = `${CONFIG.JIKAN_BASE}/anime?genres=${gidsParam}&order_by=score&sort=desc&min_score=7&page=${page}&limit=25`;
     } else {
         url = `${CONFIG.JIKAN_BASE}/top/anime?page=${page}&limit=25&type=tv`;
     }
@@ -397,7 +410,7 @@ async function fetchAnime() {
 
 async function fetchFromWorker() {
     const params = new URLSearchParams({ type: selectedType });
-    if (selectedGenre) params.set('genre', selectedGenre);
+    if (selectedGenres.size) params.set('genres', [...selectedGenres].join(','));
     const excluded = [...excludedTitles()];
     if (excluded.length > 0) params.set('exclude', excluded.join(','));
 
@@ -465,5 +478,12 @@ document.addEventListener('DOMContentLoaded', () => {
         saveWatchlist();
         renderWatchlist();
         showToast('Watchlist cleared.');
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && !['INPUT', 'TEXTAREA', 'BUTTON', 'SELECT'].includes(e.target.tagName)) {
+            e.preventDefault();
+            recommend();
+        }
     });
 });

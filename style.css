@@ -243,15 +243,23 @@ h2 {
 .result-desc { color: #bbb; font-size: 0.9rem; line-height: 1.7; }
 
 
-.spinner {
-    width: 22px; height: 22px;
-    border: 3px solid rgba(255,255,255,0.15);
-    border-top-color: #f0f0f0;
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-    display: inline-block;
+.skel {
+    background: linear-gradient(90deg, #2a2a2a 25%, #383838 50%, #2a2a2a 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s ease-in-out infinite;
+    border-radius: 6px;
+    margin-bottom: 12px;
 }
-@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+.skel-poster  { height: 200px; }
+.skel-title   { height: 26px; width: 65%; }
+.skel-meta    { height: 20px; width: 50%; }
+.skel-line    { height: 13px; }
+.skel-short   { width: 85%; }
+.skel-shorter { width: 55%; }
 
 
 .error-msg {
