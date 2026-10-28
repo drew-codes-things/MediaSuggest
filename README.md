@@ -2,7 +2,7 @@
 
 # MediaRecommender
 
-**A browser tool that picks a random Movie, TV Show, or Anime recommendation based on your chosen genre, powered by TMDB and Jikan.**
+**A browser tool that picks a random Movie, TV Show, or Anime recommendation based on your chosen genre, powered by TMDB.**
 
 [![JavaScript](https://img.shields.io/badge/javascript-drew?style=flat-square&logo=javascript&logoColor=F7DF1E&color=000000)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
 [![HTML](https://img.shields.io/badge/html-drew?style=flat-square&logo=html5&logoColor=FFFFFF&color=E34C26)](https://html.spec.whatwg.org/)
@@ -18,8 +18,8 @@ Pick a media type, optionally filter by genre, and get an instant recommendation
 
 ## How It Works
 
-- **Movies and TV Shows** are fetched from TMDB via a Cloudflare Worker at `api.drew-gnr.xyz/tmdb`. The Worker handles the API key server-side so no credentials are exposed in the client.
-- **Anime** is fetched directly from the [Jikan v4 API](https://jikan.moe/) (no key required), filtered by MAL genre ID and sorted by score descending with a minimum score of 7. The total available pages are fetched dynamically so results aren't limited to just the first 5 pages.
+- **Movies, TV Shows and Anime** all come from TMDB via a Cloudflare Worker at `api.drew-gnr.xyz/tmdb` (source in [`worker/worker.js`](worker/worker.js)). The Worker handles the API key server-side so no credentials are exposed in the client.
+- **Anime** is Japanese-language animated TV on TMDB, so it uses TMDB's TV genres. If a genre mix is narrow enough that a random page would be empty, the Worker retries within the pages that actually exist.
 - Already-seen titles **and everything in your watchlist** are excluded from subsequent fetches so you won't get the same result twice in a row, or be recommended something you've already saved.
 
 ---
@@ -44,9 +44,11 @@ The UI uses a two-panel layout:
 
 `action` `animation` `comedy` `crime` `documentary` `drama` `fantasy` `history` `mystery` `sci-fi` `thriller`
 
+TMDB's TV genres are coarser than its movie ones, so some share a genre: action and adventure both mean "Action & Adventure", fantasy and sci-fi both mean "Sci-Fi & Fantasy", history means "War & Politics", and thriller uses "Mystery".
+
 ### Anime
 
-`action` `adventure` `comedy` `drama` `fantasy` `horror` `mystery` `romance` `sci-fi` `thriller` `sports` `music` `mecha` `slice of life`
+`action` `adventure` `comedy` `crime` `drama` `family` `fantasy` `mystery` `sci-fi`
 
 ---
 
@@ -55,7 +57,7 @@ The UI uses a two-panel layout:
 Each recommendation shows:
 
 - Title and poster image
-- Type badge (`Movie`, `TV Show`, `Anime`), release year, and TMDB/MAL score
+- Type badge (`Movie`, `TV Show`, `Anime`), release year, and TMDB score
 - Up to 4 genre badges
 - Synopsis / description
 - **Add to Watchlist** button to save the result to your session watchlist

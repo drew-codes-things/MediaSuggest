@@ -301,9 +301,6 @@ h2 {
     .result-actions { flex-direction: column; }
 }
 
-/* ============================================================
-   Background + console header (shared with drew-gnr.xyz)
-   ============================================================ */
 .bg-grid { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
 .bg-grid::before {
     content: "";

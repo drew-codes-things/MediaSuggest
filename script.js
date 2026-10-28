@@ -1,29 +1,12 @@
 const CONFIG = {
-    WORKER_URL:     'https://api.drew-gnr.xyz/tmdb',
-    JIKAN_BASE:     'https://api.jikan.moe/v4',
-    JIKAN_DELAY_MS: 400,
-    MAX_SKIP:       10,
+    WORKER_URL: 'https://api.drew-gnr.xyz/tmdb',
+    MAX_SKIP:   10,
 };
 
 const GENRES = {
     movie: ['action','adventure','animation','comedy','crime','documentary','drama','fantasy','history','horror','music','mystery','romance','sci-fi','thriller','western'],
     tv:    ['action','animation','comedy','crime','documentary','drama','fantasy','history','mystery','sci-fi','thriller'],
-    anime: [
-        { name: 'action',        id: 1  },
-        { name: 'adventure',     id: 2  },
-        { name: 'comedy',        id: 4  },
-        { name: 'drama',         id: 8  },
-        { name: 'fantasy',       id: 10 },
-        { name: 'horror',        id: 14 },
-        { name: 'mystery',       id: 7  },
-        { name: 'romance',       id: 22 },
-        { name: 'sci-fi',        id: 24 },
-        { name: 'thriller',      id: 41 },
-        { name: 'sports',        id: 30 },
-        { name: 'music',         id: 19 },
-        { name: 'mecha',         id: 18 },
-        { name: 'slice of life', id: 36 },
-    ]
+    anime: ['action','adventure','comedy','crime','drama','family','fantasy','mystery','sci-fi'],
 };
 
 let selectedType   = 'movie';
@@ -46,7 +29,20 @@ const toastEl       = document.getElementById('toast');
 
 const WATCHLIST_KEY = 'mediarec_watchlist';
 
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[ch]);
+}
+
+function safePosterUrl(url) {
+    return typeof url === 'string' && url.startsWith('https://') ? url : '';
+}
+
+function typeLabelFor(type) {
+    const name = String(type || 'movie');
+    return name === 'tv' ? 'TV Show' : name.charAt(0).toUpperCase() + name.slice(1);
+}
 
 function saveWatchlist() {
     try { localStorage.setItem(WATCHLIST_KEY, JSON.stringify(watchlist)); } catch (_) {}
@@ -77,10 +73,7 @@ function showToast(msg, success = false) {
 function buildGenreButtons(type) {
     genreGrid.innerHTML = '';
     selectedGenres.clear();
-    const list = type === 'anime'
-        ? GENRES.anime.map(g => g.name)
-        : GENRES[type];
-    list.forEach(g => {
+    GENRES[type].forEach(g => {
         const btn = document.createElement('button');
         btn.className = 'genre-btn';
         btn.textContent = g.charAt(0).toUpperCase() + g.slice(1);
@@ -124,21 +117,23 @@ function showResult({ title, year, score, genres, desc, poster, type }) {
     seenTitles.push(title);
     if (seenTitles.length > CONFIG.MAX_SKIP) seenTitles.shift();
 
-    const typeLabel   = type === 'tv' ? 'TV Show' : type.charAt(0).toUpperCase() + type.slice(1);
-    const genreBadges = (genres || []).slice(0, 4).map(g =>
-        `<span class="badge badge-genre">${g}</span>`).join('');
-    const scoreBadge  = score ? `<span class="badge badge-score">★ ${score}</span>` : '';
-    const yearBadge   = year  ? `<span class="badge badge-year">${year}</span>`  : '';
+    const posterUrl   = safePosterUrl(poster);
+    const genreBadges = (Array.isArray(genres) ? genres : []).slice(0, 4).map(g =>
+        `<span class="badge badge-genre">${escapeHtml(g)}</span>`).join('');
+    const scoreBadge  = score ? `<span class="badge badge-score">★ ${escapeHtml(score)}</span>` : '';
+    const yearBadge   = year  ? `<span class="badge badge-year">${escapeHtml(year)}</span>`  : '';
 
     resultInner.innerHTML = `
-        <img class="result-poster${poster ? '' : ' hidden'}" src="${poster || ''}" alt="${title} poster" loading="lazy" onerror="this.classList.add('hidden')">
-        <h3 class="result-title">${title}</h3>
+        <img class="result-poster${posterUrl ? '' : ' hidden'}" src="${escapeHtml(posterUrl)}" alt="${escapeHtml(title)} poster" loading="lazy">
+        <h3 class="result-title">${escapeHtml(title)}</h3>
         <div class="result-meta">
-            <span class="badge badge-type">${typeLabel}</span>
+            <span class="badge badge-type">${escapeHtml(typeLabelFor(type))}</span>
             ${yearBadge}${scoreBadge}${genreBadges}
         </div>
-        <p class="result-desc">${desc || 'No description available.'}</p>
+        <p class="result-desc">${escapeHtml(desc || 'No description available.')}</p>
     `;
+    const posterImg = resultInner.querySelector('.result-poster');
+    posterImg.addEventListener('error', () => posterImg.classList.add('hidden'));
 
     resultCard.querySelector('.result-actions').style.visibility = '';
     if (!stage.classList.contains('has-result')) {
@@ -151,7 +146,7 @@ function showResult({ title, year, score, genres, desc, poster, type }) {
 }
 
 function showError(msg) {
-    resultInner.innerHTML = `<p class="error-msg">${msg}</p>`;
+    resultInner.innerHTML = `<p class="error-msg">${escapeHtml(msg)}</p>`;
     resultCard.querySelector('.result-actions').style.visibility = '';
     stage.classList.add('has-result');
 }
@@ -180,8 +175,7 @@ function downloadFile(content, filename, mime) {
 function exportWatchlist() {
     if (!watchlist.length) { showToast('Watchlist is empty.'); return; }
     const lines = watchlist.map(w => {
-        const type = w.type === 'tv' ? 'TV Show' : w.type.charAt(0).toUpperCase() + w.type.slice(1);
-        const meta = [type, w.year, w.score ? `${w.score}/10` : null].filter(Boolean).join(' · ');
+        const meta = [typeLabelFor(w.type), w.year, w.score ? `${w.score}/10` : null].filter(Boolean).join(' · ');
         return `${w.title} (${meta})`;
     });
     const header = `My Watchlist - ${new Date().toLocaleDateString()}\n${'='.repeat(30)}\n`;
@@ -336,14 +330,13 @@ function renderWatchlist() {
     watchlist.forEach((item, idx) => {
         const li = document.createElement('li');
         li.className = 'watchlist-item';
-        const typeLabel = item.type === 'tv' ? 'TV Show' : item.type.charAt(0).toUpperCase() + item.type.slice(1);
-        const meta = [typeLabel, item.year, item.score ? '★ ' + item.score : null].filter(Boolean).join(' · ');
+        const meta = [typeLabelFor(item.type), item.year, item.score ? '★ ' + item.score : null].filter(Boolean).join(' · ');
         li.innerHTML = `
             <div class="watchlist-info">
-                <span class="watchlist-title">${item.title}</span>
-                <span class="watchlist-meta">${meta}</span>
+                <span class="watchlist-title">${escapeHtml(item.title)}</span>
+                <span class="watchlist-meta">${escapeHtml(meta)}</span>
             </div>
-            <button class="btn-remove" aria-label="Remove ${item.title}">
+            <button class="btn-remove" aria-label="Remove ${escapeHtml(item.title)}">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
                     <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
@@ -356,56 +349,6 @@ function renderWatchlist() {
         });
         watchlistEl.appendChild(li);
     });
-}
-
-async function fetchAnime() {
-    let maxPages = 5;
-    const genreObjs = GENRES.anime.filter(g => selectedGenres.has(g.name));
-    const gidsParam = genreObjs.map(g => g.id).join(',');
-
-    if (gidsParam) {
-        try {
-            const infoRes = await fetch(
-                `${CONFIG.JIKAN_BASE}/anime?genres=${gidsParam}&order_by=score&sort=desc&min_score=7&limit=1`
-            );
-            if (infoRes.ok) {
-                const info = await infoRes.json();
-                maxPages = Math.min(info.pagination?.last_visible_page ?? 5, 20);
-            }
-        } catch (_) {}
-        await sleep(CONFIG.JIKAN_DELAY_MS);
-    }
-
-    const page = Math.floor(Math.random() * maxPages) + 1;
-    let url;
-    if (gidsParam) {
-        url = `${CONFIG.JIKAN_BASE}/anime?genres=${gidsParam}&order_by=score&sort=desc&min_score=7&page=${page}&limit=25`;
-    } else {
-        url = `${CONFIG.JIKAN_BASE}/top/anime?page=${page}&limit=25&type=tv`;
-    }
-
-    const res = await fetch(url);
-    if (res.status === 429) throw new Error('Anime API rate limit hit - slow down a bit and try again.');
-    if (!res.ok) throw new Error('Could not reach anime database.');
-    const json = await res.json();
-
-    let items = json.data;
-    if (!items || items.length === 0) throw new Error('No anime found for that genre.');
-
-    const excluded = excludedTitles();
-    const fresh = items.filter(a => !excluded.has(a.title_english || a.title));
-    const pool  = fresh.length > 0 ? fresh : items;
-    const pick  = pool[Math.floor(Math.random() * pool.length)];
-
-    return {
-        type:   'anime',
-        title:  pick.title_english || pick.title,
-        year:   pick.aired?.prop?.from?.year ?? null,
-        score:  pick.score ? pick.score.toFixed(1) : null,
-        genres: (pick.genres || []).map(g => g.name),
-        desc:   pick.synopsis ? pick.synopsis.replace(/\[Written by MAL Rewrite\]/g, '').trim() : '',
-        poster: pick.images?.jpg?.large_image_url ?? null,
-    };
 }
 
 async function fetchFromWorker() {
@@ -424,10 +367,7 @@ async function recommend() {
     if (loading) return;
     setLoading(true);
     try {
-        const result = selectedType === 'anime'
-            ? await fetchAnime()
-            : await fetchFromWorker();
-        showResult(result);
+        showResult(await fetchFromWorker());
     } catch (err) {
         showError(err.message || 'Something went wrong. Please try again.');
     } finally {
