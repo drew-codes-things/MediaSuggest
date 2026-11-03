@@ -1,6 +1,8 @@
 const CONFIG = {
-    WORKER_URL: 'https://api.drew-gnr.xyz/tmdb',
-    MAX_SKIP:   10,
+    WORKER_URL:       'https://api.drew-gnr.xyz/tmdb',
+    MAX_SKIP:         10,
+    MAX_EXCLUDE_SENT: 150,
+    MAX_FETCH_TRIES:  4,
 };
 
 const GENRES = {
@@ -15,6 +17,7 @@ let loading        = false;
 let lastResult    = null;
 let seenTitles    = [];
 let watchlist     = [];
+let hiddenTitles  = [];
 
 const stage         = document.querySelector('.stage');
 const genreGrid     = document.getElementById('genre-grid');
@@ -28,6 +31,11 @@ const watchlistEl   = document.getElementById('watchlist');
 const toastEl       = document.getElementById('toast');
 
 const WATCHLIST_KEY = 'mediarec_watchlist';
+const HIDDEN_KEY    = 'mediarec_hidden';
+const HIDDEN_REASONS = { watched: 'Seen it', dismissed: 'Not interested' };
+const hiddenCard    = document.getElementById('hidden-card');
+const hiddenCount   = document.getElementById('hidden-count');
+const hiddenListEl  = document.getElementById('hidden-list');
 
 function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, ch => ({
@@ -58,8 +66,64 @@ function loadWatchlist() {
     } catch (_) {}
 }
 
+function saveHidden() {
+    try { localStorage.setItem(HIDDEN_KEY, JSON.stringify(hiddenTitles)); } catch (_) {}
+}
+
+function loadHidden() {
+    try {
+        const data = JSON.parse(localStorage.getItem(HIDDEN_KEY) || '[]');
+        if (Array.isArray(data)) hiddenTitles = data.filter(h => h && h.title && HIDDEN_REASONS[h.reason]);
+    } catch (_) {}
+}
+
+function isHidden(item) {
+    return hiddenTitles.some(h => h.title === item.title && h.type === (item.type || 'movie'));
+}
+
+function hideCurrent(reason) {
+    if (!lastResult) return;
+    if (!isHidden(lastResult)) {
+        hiddenTitles.unshift({ title: lastResult.title, type: lastResult.type || 'movie', year: lastResult.year || null, reason, at: Date.now() });
+        saveHidden();
+        renderHidden();
+    }
+    showToast(`${HIDDEN_REASONS[reason]}: we won't suggest ${lastResult.title} again.`, true);
+    recommend();
+}
+
+function unhide(index) {
+    hiddenTitles.splice(index, 1);
+    saveHidden();
+    renderHidden();
+}
+
+function renderHidden() {
+    hiddenListEl.innerHTML = '';
+    hiddenCount.textContent = String(hiddenTitles.length);
+    hiddenCard.hidden = hiddenTitles.length === 0;
+    hiddenTitles.forEach((item, idx) => {
+        const li = document.createElement('li');
+        li.className = 'watchlist-item';
+        const meta = [typeLabelFor(item.type), item.year, HIDDEN_REASONS[item.reason]].filter(Boolean).join(' · ');
+        li.innerHTML = `
+            <div class="watchlist-info">
+                <span class="watchlist-title">${escapeHtml(item.title)}</span>
+                <span class="watchlist-meta">${escapeHtml(meta)}</span>
+            </div>
+            <button class="btn-remove btn-unhide" aria-label="Suggest ${escapeHtml(item.title)} again">Undo</button>
+        `;
+        li.querySelector('.btn-unhide').addEventListener('click', () => unhide(idx));
+        hiddenListEl.appendChild(li);
+    });
+}
+
 function excludedTitles() {
-    return new Set([...seenTitles, ...watchlist.map(w => w.title)]);
+    const recentHidden = hiddenTitles
+        .filter(h => h.type === selectedType)
+        .slice(0, CONFIG.MAX_EXCLUDE_SENT)
+        .map(h => h.title);
+    return new Set([...seenTitles, ...watchlist.map(w => w.title), ...recentHidden]);
 }
 
 function showToast(msg, success = false) {
@@ -91,6 +155,12 @@ function buildGenreButtons(type) {
     });
 }
 
+function setActionsVisible(visible) {
+    resultCard.querySelectorAll('.result-actions').forEach(row => {
+        row.style.visibility = visible ? '' : 'hidden';
+    });
+}
+
 function showSkeleton() {
     if (!stage.classList.contains('has-result')) stage.classList.add('has-result');
     resultInner.innerHTML = `
@@ -101,7 +171,7 @@ function showSkeleton() {
         <div class="skel skel-line skel-short"></div>
         <div class="skel skel-line skel-shorter"></div>
     `;
-    resultCard.querySelector('.result-actions').style.visibility = 'hidden';
+    setActionsVisible(false);
 }
 
 function setLoading(on) {
@@ -135,7 +205,7 @@ function showResult({ title, year, score, genres, desc, poster, type }) {
     const posterImg = resultInner.querySelector('.result-poster');
     posterImg.addEventListener('error', () => posterImg.classList.add('hidden'));
 
-    resultCard.querySelector('.result-actions').style.visibility = '';
+    setActionsVisible(true);
     if (!stage.classList.contains('has-result')) {
         stage.classList.add('has-result');
     } else {
@@ -147,7 +217,7 @@ function showResult({ title, year, score, genres, desc, poster, type }) {
 
 function showError(msg) {
     resultInner.innerHTML = `<p class="error-msg">${escapeHtml(msg)}</p>`;
-    resultCard.querySelector('.result-actions').style.visibility = '';
+    setActionsVisible(true);
     stage.classList.add('has-result');
 }
 
@@ -363,11 +433,19 @@ async function fetchFromWorker() {
     return json;
 }
 
+async function fetchUnhidden() {
+    for (let attempt = 0; attempt < CONFIG.MAX_FETCH_TRIES; attempt++) {
+        const result = await fetchFromWorker();
+        if (!isHidden(result)) return result;
+    }
+    throw new Error("Everything we found is marked as seen or not interested. Try other genres, or undo some in the list below.");
+}
+
 async function recommend() {
     if (loading) return;
     setLoading(true);
     try {
-        showResult(await fetchFromWorker());
+        showResult(await fetchUnhidden());
     } catch (err) {
         showError(err.message || 'Something went wrong. Please try again.');
     } finally {
@@ -379,6 +457,8 @@ document.addEventListener('DOMContentLoaded', () => {
     buildGenreButtons(selectedType);
     loadWatchlist();
     renderWatchlist();
+    loadHidden();
+    renderHidden();
     loadSharedPick();
     setupConnectivity();
 
@@ -400,6 +480,14 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-watchlist').addEventListener('click', addToWatchlist);
 
     document.getElementById('btn-share').addEventListener('click', sharePick);
+    document.getElementById('btn-seen').addEventListener('click', () => hideCurrent('watched'));
+    document.getElementById('btn-dismiss').addEventListener('click', () => hideCurrent('dismissed'));
+    document.getElementById('btn-clear-hidden').addEventListener('click', () => {
+        hiddenTitles = [];
+        saveHidden();
+        renderHidden();
+        showToast('Seen and dismissed list cleared.');
+    });
 
     document.getElementById('btn-export-watchlist').addEventListener('click', exportWatchlist);
     document.getElementById('btn-export-csv').addEventListener('click', exportWatchlistCSV);

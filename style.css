@@ -161,6 +161,16 @@ h2 {
 
 .result-actions { display: flex; gap: 10px; margin-top: 20px; }
 .result-actions .btn { flex: 1; }
+.result-actions-quiet { margin-top: 10px; }
+.btn-ghost       { border-color: transparent; color: var(--text-faint); padding: 8px 16px; font-size: .8rem; }
+.btn-ghost:hover { border-color: var(--line-bright); color: var(--text); }
+
+.hidden-card[hidden] { display: none; }
+.hidden-card summary { cursor: pointer; font-family: var(--mono); font-size: .85rem; color: var(--text-dim); }
+.hidden-card summary:hover { color: var(--text); }
+.hidden-note { font-size: .78rem; color: var(--text-faint); margin: 10px 0; }
+.hidden-card .btn-ghost { margin-top: 10px; }
+.btn-unhide { font-family: var(--sans); font-size: .75rem; }
 
 .result-card { animation: fadeContent .32s ease both; }
 @keyframes fadeContent {

@@ -20,7 +20,7 @@ Pick a media type, optionally filter by genre, and get an instant recommendation
 
 - **Movies, TV Shows and Anime** all come from TMDB via a Cloudflare Worker at `api.drew-gnr.xyz/tmdb` (source in [`worker/worker.js`](worker/worker.js)). The Worker handles the API key server-side so no credentials are exposed in the client.
 - **Anime** is Japanese-language animated TV on TMDB, so it uses TMDB's TV genres. If a genre mix is narrow enough that a random page would be empty, the Worker retries within the pages that actually exist.
-- Already-seen titles **and everything in your watchlist** are excluded from subsequent fetches so you won't get the same result twice in a row, or be recommended something you've already saved.
+- Already-seen titles, **everything in your watchlist**, and anything you've marked **Seen it** or **Not interested** are excluded from later fetches, so you won't get the same result twice in a row or be recommended something you've already dealt with.
 
 ---
 
@@ -62,6 +62,7 @@ Each recommendation shows:
 - Synopsis / description
 - **Add to Watchlist** button to save the result to your session watchlist
 - **Try another** button to fetch a new result without changing your selections
+- **Seen it** / **Not interested** - never suggest this title again and move straight on to the next one. Both are remembered in your browser, listed under *Seen & not interested*, and each can be undone
 
 ---
 

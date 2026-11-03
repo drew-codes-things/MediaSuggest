@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=6">
+    <link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
 
@@ -52,6 +52,10 @@
                     <button class="btn btn-secondary" id="btn-again">Try another</button>
                     <button class="btn btn-secondary" id="btn-share">Share</button>
                 </div>
+                <div class="result-actions result-actions-quiet">
+                    <button class="btn btn-ghost" id="btn-seen">Seen it</button>
+                    <button class="btn btn-ghost" id="btn-dismiss">Not interested</button>
+                </div>
             </div>
 
             <div class="card watchlist-card" id="watchlist-card" style="display:none;">
@@ -75,6 +79,13 @@
                 </div>
                 <ul class="watchlist" id="watchlist"></ul>
             </div>
+
+            <details class="card hidden-card" id="hidden-card" hidden>
+                <summary>Seen &amp; not interested (<span id="hidden-count">0</span>)</summary>
+                <p class="hidden-note">These titles won't be suggested again. Undo one to see it again.</p>
+                <ul class="watchlist" id="hidden-list"></ul>
+                <button class="btn btn-ghost" id="btn-clear-hidden">Clear list</button>
+            </details>
 
         </div>
 
