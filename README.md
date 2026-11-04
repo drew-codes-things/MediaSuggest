@@ -1,112 +1,66 @@
-<div align="center">
+# Media recommender
 
-# MediaRecommender
+![Screenshot](screenshot.jpg)
 
-**A browser tool that picks a random Movie, TV Show, or Anime recommendation based on your chosen genre, powered by TMDB.**
+Pick a mood and get a film, TV show or anime to watch. Live at <https://mediarec.drew-gnr.xyz/>.
 
-[![JavaScript](https://img.shields.io/badge/javascript-drew?style=flat-square&logo=javascript&logoColor=F7DF1E&color=000000)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
-[![HTML](https://img.shields.io/badge/html-drew?style=flat-square&logo=html5&logoColor=FFFFFF&color=E34C26)](https://html.spec.whatwg.org/)
-[![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
+## Features
 
-</div>
+- Movies and TV shows from TMDB, anime from Jikan (MyAnimeList)
+- A genre list for each type, plus "any genre"
+- Poster, year, rating, genres and description, all inserted as text so nothing from the APIs can run as HTML
+- "Another one" skips titles you've already been shown this session
+- Watchlist saved in the browser, with remove and clear (clear asks first)
+- Where to watch: streaming, free, rent and buy services in the UK for films and TV, and streaming services for anime
+- More info and trailer links for every pick, going straight to the official trailer when there is one
+- Errors show a plain message and a retry button
+- Your last type and genre are remembered
 
----
+## TMDB helper (`worker/`)
 
-Pick a media type, optionally filter by genre, and get an instant recommendation. No account, no install, no tracking. The app is also live at [mediarec.drew-gnr.xyz](https://mediarec.drew-gnr.xyz/).
+The TMDB key is never in the page. Films and TV go through a small Cloudflare Worker at `https://api.drew-gnr.xyz/tmdb` (set by `CONFIG.workerUrl` at the top of `assets/app.js`), which adds the key, picks a well-rated title, and looks up its trailer and where to watch it.
 
----
-
-## How It Works
-
-- **Movies, TV Shows and Anime** all come from TMDB via a Cloudflare Worker at `api.drew-gnr.xyz/tmdb` (source in [`worker/worker.js`](worker/worker.js)). The Worker handles the API key server-side so no credentials are exposed in the client. It only answers browser requests from the origins listed in `ALLOWED_ORIGINS` at the top of the worker (plus `localhost` for development), so other sites cannot spend the TMDB quota.
-- **Anime** is Japanese-language animated TV on TMDB, so it uses TMDB's TV genres. If a genre mix is narrow enough that a random page would be empty, the Worker retries within the pages that actually exist.
-- Already-seen titles, **everything in your watchlist**, and anything you've marked **Seen it** or **Not interested** are excluded from later fetches, so you won't get the same result twice in a row or be recommended something you've already dealt with.
-
----
-
-## Layout
-
-The UI uses a two-panel layout:
-
-- **Before a recommendation** - the input card sits centred on screen by itself.
-- **After clicking Recommend** - the result panel animates in to the right, creating a side-by-side 50/50 split across the full page width.
-- On screens narrower than 860px the panels stack vertically.
-
----
-
-## Media Types and Genres
-
-### Movies
-
-`action` `adventure` `animation` `comedy` `crime` `documentary` `drama` `fantasy` `history` `horror` `music` `mystery` `romance` `sci-fi` `thriller` `western`
-
-### TV Shows
-
-`action` `animation` `comedy` `crime` `documentary` `drama` `fantasy` `history` `mystery` `sci-fi` `thriller`
-
-TMDB's TV genres are coarser than its movie ones, so some share a genre: action and adventure both mean "Action & Adventure", fantasy and sci-fi both mean "Sci-Fi & Fantasy", history means "War & Politics", and thriller uses "Mystery".
-
-### Anime
-
-`action` `adventure` `comedy` `crime` `drama` `family` `fantasy` `mystery` `sci-fi`
-
----
-
-## Result Card
-
-Each recommendation shows:
-
-- Title and poster image
-- Type badge (`Movie`, `TV Show`, `Anime`), release year, and TMDB score
-- Up to 4 genre badges
-- Synopsis / description
-- **Add to Watchlist** button to save the result to your session watchlist
-- **Try another** button to fetch a new result without changing your selections
-- **Seen it** / **Not interested** - never suggest this title again and move straight on to the next one. Both are remembered in your browser, listed under *Seen & not interested*, and each can be undone
-
----
-
-## Watchlist
-
-A watchlist appears below the result card once you save your first item. It is **persisted to `localStorage`**, so it survives refreshes and browser restarts. Each entry shows the title, type, year, and score. Items can be removed individually or cleared all at once.
-
-- **Shuffle** - pick a random title from your watchlist as the current result
-- **Import / Export** - export as `.txt`, `.csv`, or `.json`; import any of those back in (duplicates are skipped)
-- **Share** - copy a permalink (`?pick=…`) that reopens the current recommendation for anyone who visits it
-
----
-
-## Usage
-
-Visit [mediarec.drew-gnr.xyz](https://mediarec.drew-gnr.xyz/), or serve the folder locally (the Worker rejects the `null` origin a `file://` page sends, so open it through a local server):
+Deploying it, from the `worker` folder:
 
 ```bash
-python -m http.server 8000
+npx wrangler secret put TMDB_TOKEN
 ```
-
-Then open <http://localhost:8000>.
-
-1. Select a media type (`Movie`, `TV Show`, `Anime`)
-2. Click a genre pill to filter (optional - click again to deselect)
-3. Click **Recommend me something**
-4. Optionally save the result to your watchlist or hit **Try another**
-
----
-
-## Get the Code
-
-Clone with git:
 
 ```bash
-git clone https://github.com/drew-codes-things/MediaSuggest.git
+npx wrangler deploy
 ```
 
-Or with the [GitHub CLI](https://cli.github.com/):
+`TMDB_TOKEN` is the "API Read Access Token" from your TMDB account settings. `TMDB_API_KEY` (the shorter v3 key) also works if you'd rather use that. `wrangler.toml` sets the route, `ALLOWED_ORIGINS` (comma-separated sites allowed to call it) and `REGION` (the default country for where-to-watch, `GB`).
 
-```bash
-gh repo clone drew-codes-things/MediaSuggest
+The page calls `GET /tmdb?type=movie|tv&genre=<name>&exclude=<title,title>`, with an optional `region=US` style code, and gets back:
+
+```json
+{
+  "title": "", "year": 2021, "score": "7.9", "genres": ["Drama"], "desc": "",
+  "poster": "https://image.tmdb.org/...", "link": "https://www.themoviedb.org/movie/1",
+  "trailer": "https://www.youtube.com/watch?v=...",
+  "providers": { "region": "GB", "link": "...", "stream": [{ "name": "Netflix", "logo": "..." }], "free": [], "rent": [], "buy": [] }
+}
 ```
 
-## License
+Errors come back as `{ "error": "message" }`. The page still works with an older helper that leaves out `trailer` and `providers`; it just skips those parts.
 
-MIT - made by [Drew](https://github.com/drew-codes-things)
+Where-to-watch data comes from JustWatch through TMDB, and the page credits them as their terms ask.
+
+Anime needs no key. Jikan is rate limited, so the page spaces its calls out.
+
+## Files
+
+| Path | What it is |
+| --- | --- |
+| `index.html` | The page |
+| `assets/app.js` | Fetching, rendering and the watchlist |
+| `assets/app.css` | Layout for this tool |
+| `worker/worker.js`, `worker/wrangler.toml` | The TMDB helper |
+| `tests/worker.test.mjs` | `node tests/worker.test.mjs` |
+| `assets/theme.css`, `assets/ui.js` | Shared drew-gnr.xyz look and helpers |
+| `assets/fonts/` | IBM Plex, self-hosted (SIL OFL, see `OFL.txt`) |
+
+## Hosting
+
+The page is static files only; `CNAME` is set for GitHub Pages. The `worker` folder is deployed separately to Cloudflare and does not need to be on the site.

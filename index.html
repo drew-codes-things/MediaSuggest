@@ -1,98 +1,73 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Media Recommender</title>
-    <link rel="icon" href="logo.svg" type="image/svg+xml">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=7">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Media recommender | Drew's Realm</title>
+<meta name="description" content="Can't pick something to watch? Choose movie, TV or anime and a genre, and get a random well-rated recommendation.">
+<meta name="theme-color" content="#0a0a0b">
+<meta name="color-scheme" content="dark">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Drew's Realm">
+<meta property="og:title" content="Media recommender">
+<meta property="og:description" content="Choose movie, TV or anime and a genre, and get a random well-rated recommendation.">
+<meta property="og:url" content="https://mediarec.drew-gnr.xyz/">
+<link rel="canonical" href="https://mediarec.drew-gnr.xyz/">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/theme.css">
+<link rel="stylesheet" href="assets/app.css">
 </head>
 <body>
+<header class="topbar">
+    <a class="brand" href="https://drew-gnr.xyz/"><img class="brand-logo" src="assets/logo.svg" alt=""><span class="brand-name">Drew's Realm</span></a>
+    <span class="here">Media recommender</span>
+    <nav class="topbar-links"><a class="btn-ghost" href="https://drew-gnr.xyz/catalogue/">More tools</a></nav>
+</header>
 
+<main class="wrap wide">
+    <h1 class="h">What to watch<span class="dot">.</span></h1>
+    <p class="lede">Pick movies, TV or anime, narrow it to a genre if you like, and get a random recommendation from the well-rated end of the list, with where to watch it. Save anything that catches your eye to a watchlist kept in this browser.</p>
 
-    <header class="topbar">
-        <img src="logo.svg" alt="Logo" class="topbar-logo">
-        <h1>Media Recommender</h1>
-    </header>
-
-    <div class="stage" id="stage">
-
-        
-        <div class="panel panel-input" id="panel-input">
-            <div class="card">
-                <h2>What are you in the mood for?</h2>
-
-                <div class="type-row">
-                    <button class="type-btn active" data-type="movie" aria-pressed="true">Movie</button>
-                    <button class="type-btn" data-type="tv" aria-pressed="false">TV Show</button>
-                    <button class="type-btn" data-type="anime" aria-pressed="false">Anime</button>
+    <div class="layout">
+        <section class="card area-pick" aria-labelledby="pick-title">
+            <h2 id="pick-title">Your mood</h2>
+            <fieldset>
+                <legend>Type</legend>
+                <div class="opts">
+                    <button type="button" class="opt" data-type="movie" aria-pressed="true">Movie</button>
+                    <button type="button" class="opt" data-type="tv" aria-pressed="false">TV show</button>
+                    <button type="button" class="opt" data-type="anime" aria-pressed="false">Anime</button>
                 </div>
+            </fieldset>
+            <fieldset>
+                <legend>Genre</legend>
+                <div class="opts" id="genres"></div>
+            </fieldset>
+            <button type="button" class="btn-go" id="recommend">Recommend something</button>
+        </section>
 
-                <div class="genre-section">
-                    <p class="genre-label">Genres <span class="optional">(optional, pick any)</span></p>
-                    <div class="genre-grid" id="genre-grid"></div>
-                </div>
+        <section class="card result-panel area-result is-empty" id="result" tabindex="-1" aria-live="polite" aria-label="Recommendation">
+            <div class="big">?</div>
+            <p>Your recommendation shows up here.</p>
+        </section>
 
-                <button class="btn btn-primary" id="btn-recommend">
-                    <span id="btn-text">Recommend me something</span>
-                </button>
+        <section class="card area-watch" aria-labelledby="watch-title">
+            <div class="watch-head">
+                <h2 id="watch-title">Watchlist</h2>
+                <span class="count" id="watchCount"></span>
+                <button type="button" class="btn-danger" id="clearWatchlist" hidden>Clear</button>
             </div>
-        </div>
-
-        
-        <div class="panel panel-result" id="panel-result" aria-live="polite">
-
-            <div class="card result-card" id="result-card">
-                <div id="result-inner"></div>
-                <div class="result-actions">
-                    <button class="btn btn-primary" id="btn-watchlist">+ Watchlist</button>
-                    <button class="btn btn-secondary" id="btn-again">Try another</button>
-                    <button class="btn btn-secondary" id="btn-share">Share</button>
-                </div>
-                <div class="result-actions result-actions-quiet">
-                    <button class="btn btn-ghost" id="btn-seen">Seen it</button>
-                    <button class="btn btn-ghost" id="btn-dismiss">Not interested</button>
-                </div>
-            </div>
-
-            <div class="card watchlist-card" id="watchlist-card" style="display:none;">
-                <div class="watchlist-header">
-                    <h2 style="margin-bottom:0; border:none; padding:0;">Watchlist</h2>
-                    <div style="display:flex; gap:4px; align-items:center;">
-                        <button class="btn-icon" id="btn-shuffle-watchlist" title="Shuffle: pick a random title from your watchlist" aria-label="Pick a random title from your watchlist">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
-                        </button>
-                        <button class="btn-icon" id="btn-import-watchlist" title="Import watchlist (.json/.csv/.txt)" aria-label="Import watchlist">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                        </button>
-                        <button class="btn-icon btn-icon-text" id="btn-export-watchlist" title="Export as .txt" aria-label="Export watchlist as text">TXT</button>
-                        <button class="btn-icon btn-icon-text" id="btn-export-csv" title="Export as .csv" aria-label="Export watchlist as CSV">CSV</button>
-                        <button class="btn-icon btn-icon-text" id="btn-export-json" title="Export as .json" aria-label="Export watchlist as JSON">JSON</button>
-                        <button class="btn-icon" id="btn-clear-watchlist" title="Clear all" aria-label="Clear watchlist">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-                        </button>
-                        <input type="file" id="import-input" accept=".json,.csv,.txt" hidden>
-                    </div>
-                </div>
-                <ul class="watchlist" id="watchlist"></ul>
-            </div>
-
-            <details class="card hidden-card" id="hidden-card" hidden>
-                <summary>Seen &amp; not interested (<span id="hidden-count">0</span>)</summary>
-                <p class="hidden-note">These titles won't be suggested again. Undo one to see it again.</p>
-                <ul class="watchlist" id="hidden-list"></ul>
-                <button class="btn btn-ghost" id="btn-clear-hidden">Clear list</button>
-            </details>
-
-        </div>
-
+            <ul class="watchlist" id="watchlist"></ul>
+        </section>
     </div>
+</main>
 
-    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<footer class="foot">
+    Made by <a href="https://drew-gnr.xyz/">Drew</a><span class="sep">&middot;</span>Film and TV data from <a href="https://www.themoviedb.org/" rel="noopener">TMDB</a>, anime from <a href="https://jikan.moe/" rel="noopener">Jikan</a><span class="sep">&middot;</span><a href="https://github.com/drew-codes-things/MediaSuggest">Source</a><span class="sep">&middot;</span><a href="https://drew-gnr.xyz/privacy/">Privacy</a>
+</footer>
 
-    <script src="script.js"></script>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="assets/ui.js"></script>
+<script src="assets/app.js"></script>
 </body>
 </html>
