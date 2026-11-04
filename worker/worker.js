@@ -1,5 +1,6 @@
 const TMDB_BASE = 'https://api.themoviedb.org/3';
-const ALLOWED_ORIGIN = '*';
+const ALLOWED_ORIGINS = ['https://mediarec.drew-gnr.xyz'];
+const LOCAL_ORIGIN_RE = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 const MAX_RANDOM_PAGE = 5;
 
 const TMDB_GENRES_MOVIE = {
@@ -23,17 +24,29 @@ const MEDIA_TYPES = {
     anime: { kind: 'tv',    genres: TMDB_GENRES_TV,    minVotes: 50,  baseGenres: [ANIMATION_GENRE_ID], language: 'ja' },
 };
 
-function corsHeaders() {
-    return {
-        'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
-        'Access-Control-Allow-Methods': 'GET, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Content-Type': 'application/json'
-    };
+function allowedOrigin(request) {
+    const origin = request.headers.get('Origin');
+    if (!origin) return null;
+    if (ALLOWED_ORIGINS.includes(origin) || LOCAL_ORIGIN_RE.test(origin)) return origin;
+    return undefined;
 }
 
-function jsonResponse(body, status = 200) {
-    return new Response(JSON.stringify(body), { status, headers: corsHeaders() });
+function corsHeaders(origin) {
+    const headers = {
+        'Content-Type': 'application/json',
+        'Vary': 'Origin',
+    };
+    if (origin) {
+        headers['Access-Control-Allow-Origin'] = origin;
+        headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS';
+        headers['Access-Control-Allow-Headers'] = 'Content-Type';
+        headers['Access-Control-Max-Age'] = '86400';
+    }
+    return headers;
+}
+
+function jsonResponse(body, status = 200, origin = null) {
+    return new Response(JSON.stringify(body), { status, headers: corsHeaders(origin) });
 }
 
 async function tmdbFetch(path, env) {
@@ -70,18 +83,19 @@ async function fetchCandidates(media, genreNames, env) {
     return retry.results || [];
 }
 
-async function handleRequest(request, env) {
+async function handleRequest(request, env, origin) {
     const url = new URL(request.url);
     const type = url.searchParams.get('type') || 'movie';
     const media = MEDIA_TYPES[type];
-    if (!media) return jsonResponse({ error: `Unknown type "${type}"` }, 400);
+    if (!media) return jsonResponse({ error: `Unknown type "${type}"` }, 400, origin);
 
     const genreRaw = url.searchParams.get('genres') || url.searchParams.get('genre') || '';
     const genreNames = genreRaw.split(',').map(g => g.trim().toLowerCase()).filter(Boolean);
-    const excluded = new Set((url.searchParams.get('exclude') || '').split(',').map(t => t.trim()).filter(Boolean));
+    const excludeRaw = url.searchParams.get('exclude') || '';
+    const excluded = new Set(excludeRaw.split(excludeRaw.includes('|') ? '|' : ',').map(t => t.trim()).filter(Boolean));
 
     const results = await fetchCandidates(media, genreNames, env);
-    if (!results.length) return jsonResponse({ error: 'No results found for that genre mix.' }, 404);
+    if (!results.length) return jsonResponse({ error: 'No results found for that genre mix.' }, 404, origin);
 
     const fresh = results.filter(r => !excluded.has(r.title || r.name));
     const pick = pickRandom(fresh.length ? fresh : results);
@@ -100,13 +114,16 @@ async function handleRequest(request, env) {
         poster: pick.poster_path ? `https://image.tmdb.org/t/p/w500${pick.poster_path}` : null,
         language: pick.original_language || null,
         type
-    });
+    }, 200, origin);
 }
 
 export default {
     async fetch(request, env) {
-        if (request.method === 'OPTIONS') return new Response(null, { headers: corsHeaders() });
-        try { return await handleRequest(request, env); }
-        catch (err) { return jsonResponse({ error: err.message }, 500); }
+        const origin = allowedOrigin(request);
+        if (origin === undefined) return jsonResponse({ error: 'Origin not allowed' }, 403);
+        if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders(origin) });
+        if (request.method !== 'GET') return jsonResponse({ error: 'Method not allowed' }, 405, origin);
+        try { return await handleRequest(request, env, origin); }
+        catch (err) { return jsonResponse({ error: err.message }, 500, origin); }
     }
 };

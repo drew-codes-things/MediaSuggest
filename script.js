@@ -425,7 +425,7 @@ async function fetchFromWorker() {
     const params = new URLSearchParams({ type: selectedType });
     if (selectedGenres.size) params.set('genres', [...selectedGenres].join(','));
     const excluded = [...excludedTitles()];
-    if (excluded.length > 0) params.set('exclude', excluded.join(','));
+    if (excluded.length > 0) params.set('exclude', excluded.join('|'));
 
     const res  = await fetch(`${CONFIG.WORKER_URL}?${params}`);
     const json = await res.json();
@@ -509,7 +509,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.addEventListener('keydown', (e) => {
-        if (e.code === 'Space' && !['INPUT', 'TEXTAREA', 'BUTTON', 'SELECT'].includes(e.target.tagName)) {
+        if (e.code === 'Space' && !['INPUT', 'TEXTAREA', 'BUTTON', 'SELECT', 'SUMMARY', 'A'].includes(e.target.tagName)) {
             e.preventDefault();
             recommend();
         }

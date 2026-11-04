@@ -18,7 +18,7 @@ Pick a media type, optionally filter by genre, and get an instant recommendation
 
 ## How It Works
 
-- **Movies, TV Shows and Anime** all come from TMDB via a Cloudflare Worker at `api.drew-gnr.xyz/tmdb` (source in [`worker/worker.js`](worker/worker.js)). The Worker handles the API key server-side so no credentials are exposed in the client.
+- **Movies, TV Shows and Anime** all come from TMDB via a Cloudflare Worker at `api.drew-gnr.xyz/tmdb` (source in [`worker/worker.js`](worker/worker.js)). The Worker handles the API key server-side so no credentials are exposed in the client. It only answers browser requests from the origins listed in `ALLOWED_ORIGINS` at the top of the worker (plus `localhost` for development), so other sites cannot spend the TMDB quota.
 - **Anime** is Japanese-language animated TV on TMDB, so it uses TMDB's TV genres. If a genre mix is narrow enough that a random page would be empty, the Worker retries within the pages that actually exist.
 - Already-seen titles, **everything in your watchlist**, and anything you've marked **Seen it** or **Not interested** are excluded from later fetches, so you won't get the same result twice in a row or be recommended something you've already dealt with.
 
@@ -78,7 +78,13 @@ A watchlist appears below the result card once you save your first item. It is *
 
 ## Usage
 
-Open `index.html` in any modern browser, or visit [mediarec.drew-gnr.xyz](https://mediarec.drew-gnr.xyz/).
+Visit [mediarec.drew-gnr.xyz](https://mediarec.drew-gnr.xyz/), or serve the folder locally (the Worker rejects the `null` origin a `file://` page sends, so open it through a local server):
+
+```bash
+python -m http.server 8000
+```
+
+Then open <http://localhost:8000>.
 
 1. Select a media type (`Movie`, `TV Show`, `Anime`)
 2. Click a genre pill to filter (optional - click again to deselect)
