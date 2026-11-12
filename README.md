@@ -14,7 +14,7 @@ Pick a mood and get a film, TV show or anime to watch. Live at <https://mediarec
 - Where to watch: streaming, free, rent and buy services in the UK for films and TV, and streaming services for anime
 - More info and trailer links for every pick, going straight to the official trailer when there is one
 - Errors show a plain message and a retry button
-- Your last type and genre are remembered
+- The type you picked last (film, TV or anime) is remembered
 
 ## TMDB helper (`worker/`)
 
@@ -65,4 +65,4 @@ Anime needs no key. Jikan is rate limited, so the page spaces its calls out.
 
 ## Hosting
 
-The page is static files only; `CNAME` is set for GitHub Pages. The `worker` folder is deployed separately to Cloudflare and does not need to be on the site.
+The page is static files only. The `worker` folder is deployed separately to Cloudflare and does not need to be on the site.
