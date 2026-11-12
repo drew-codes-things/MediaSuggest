@@ -23,7 +23,8 @@ const details = {
         flatrate: [{ provider_name: 'Netflix', logo_path: '/n.jpg', display_priority: 2 }, { provider_name: 'BBC iPlayer', logo_path: '/b.jpg', display_priority: 1 }],
         free: [{ provider_name: 'Channel 4', logo_path: '/c.jpg', display_priority: 3 }],
         ads: [{ provider_name: 'Channel 4', logo_path: '/c.jpg', display_priority: 3 }],
-        rent: [{ provider_name: 'Apple TV', logo_path: null, display_priority: 4 }]
+        rent: [{ provider_name: 'Apple TV', logo_path: null, display_priority: 4 }],
+        buy: [{ provider_name: 'Rakuten TV', logo_path: null, display_priority: 5 }, { provider_name: 'Sky Store', logo_path: null }, { provider_name: 'Amazon Video', logo_path: null, display_priority: 0 }]
     } } }
 };
 
@@ -52,7 +53,7 @@ assert.strictEqual(body.providers.region, 'GB');
 assert.deepStrictEqual(body.providers.stream.map(p => p.name), ['BBC iPlayer', 'Netflix'], 'sorted by priority');
 assert.deepStrictEqual(body.providers.free.map(p => p.name), ['Channel 4'], 'free and ad-supported merged without repeats');
 assert.strictEqual(body.providers.rent[0].logo, null);
-assert.deepStrictEqual(body.providers.buy, []);
+assert.deepStrictEqual(body.providers.buy.map(p => p.name), ['Amazon Video', 'Rakuten TV', 'Sky Store'], 'priority 0 is the top provider, a missing priority goes last');
 
 const discoverCall = calls.find(c => c.url.includes('/discover/movie'));
 const dUrl = new URL(discoverCall.url);

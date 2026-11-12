@@ -67,10 +67,16 @@ async function tmdb(path, params, env, fetchImpl) {
     return res.json();
 }
 
+const UNRANKED_PROVIDER = 999;
+
+function providerRank(provider) {
+    return typeof provider.display_priority === 'number' ? provider.display_priority : UNRANKED_PROVIDER;
+}
+
 function providerGroup(list) {
     return (Array.isArray(list) ? list : [])
         .slice()
-        .sort((a, b) => (a.display_priority || 99) - (b.display_priority || 99))
+        .sort((a, b) => providerRank(a) - providerRank(b))
         .slice(0, PER_GROUP)
         .map(p => ({ name: String(p.provider_name || ''), logo: p.logo_path ? IMG + 'w92' + p.logo_path : null }))
         .filter(p => p.name);
