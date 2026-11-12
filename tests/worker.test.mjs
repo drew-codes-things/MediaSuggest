@@ -88,6 +88,13 @@ res = await handle(new Request('https://x/tmdb?type=movie&genre=__proto__'), env
 assert.strictEqual(res.status, 400);
 assert.strictEqual(calls.length, 0, 'TMDB is not called for them');
 
+const picks = new Set();
+for (let i = 0; i < 20; i++) {
+    res = await handle(new Request('https://x/tmdb?type=movie&exclude_id=11,abc,', { headers: origin }), env, fakeFetch);
+    picks.add((await res.json()).id);
+}
+assert.deepStrictEqual([...picks], [22], 'titles shown before are skipped by TMDB id, so titles with commas are skipped too');
+
 res = await handle(new Request('https://x/tmdb?type=anime'), env, fakeFetch);
 assert.strictEqual(res.status, 400);
 res = await handle(new Request('https://x/tmdb?type=tv&genre=horror'), env, fakeFetch);

@@ -34,11 +34,11 @@ npx wrangler deploy
 
 A browser request from any site not in `ALLOWED_ORIGINS` gets a 403 before TMDB is called. Requests that send no `Origin` header at all (curl, scripts) still get through, because there is no way to tell them apart from a direct visit, so add a Cloudflare rate-limiting rule for `api.drew-gnr.xyz/tmdb*` to protect the TMDB key's quota.
 
-The page calls `GET /tmdb?type=movie|tv&genre=<name>&exclude=<title,title>`, with an optional `region=US` style code, and gets back:
+The page calls `GET /tmdb?type=movie|tv&genre=<name>&exclude=<title,title>&exclude_id=<id,id>`, with an optional `region=US` style code, and gets back:
 
 ```json
 {
-  "title": "", "year": 2021, "score": "7.9", "genres": ["Drama"], "desc": "",
+  "id": 1, "title": "", "year": 2021, "score": "7.9", "genres": ["Drama"], "desc": "",
   "poster": "https://image.tmdb.org/...", "link": "https://www.themoviedb.org/movie/1",
   "trailer": "https://www.youtube.com/watch?v=...",
   "providers": { "region": "GB", "link": "...", "stream": [{ "name": "Netflix", "logo": "..." }], "free": [], "rent": [], "buy": [] }

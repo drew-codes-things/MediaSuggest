@@ -15,6 +15,7 @@ const GENRES = {
 
 const MIN_VOTES = { movie: 300, tv: 150 };
 const MAX_PAGE = 20;
+const MAX_EXCLUDED = 50;
 const PER_GROUP = 8;
 const pageCounts = new Map();
 
@@ -112,7 +113,11 @@ function trailerFor(details) {
     return pick ? 'https://www.youtube.com/watch?v=' + encodeURIComponent(pick.key) : null;
 }
 
-async function pickTitle(type, genreId, exclude, region, env, fetchImpl) {
+function excludedIds(raw) {
+    return new Set(String(raw || '').split(',').map(s => s.trim()).filter(s => /^\d+$/.test(s)).slice(0, MAX_EXCLUDED).map(Number));
+}
+
+async function pickTitle(type, genreId, exclude, excludeIds, region, env, fetchImpl) {
     const cacheKey = type + ':' + (genreId || 'any');
     const known = pageCounts.get(cacheKey) || 5;
     const params = {
@@ -139,7 +144,7 @@ async function pickTitle(type, genreId, exclude, region, env, fetchImpl) {
         throw err;
     }
     const nameOf = r => String(r.title || r.name || '').toLowerCase();
-    const fresh = results.filter(r => !exclude.has(nameOf(r)));
+    const fresh = results.filter(r => !exclude.has(nameOf(r)) && !excludeIds.has(r.id));
     const pool = fresh.length ? fresh : results;
     return pool[randomInt(pool.length)];
 }
@@ -158,10 +163,11 @@ export async function handle(request, env, fetchImpl) {
     if (genre && !Object.hasOwn(GENRES[type], genre)) return json({ error: 'That genre is not available for this type.' }, 400, request, env);
     const regionParam = (url.searchParams.get('region') || '').toUpperCase();
     const region = /^[A-Z]{2}$/.test(regionParam) ? regionParam : (env.REGION || 'GB');
-    const exclude = new Set((url.searchParams.get('exclude') || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean).slice(0, 50));
+    const exclude = new Set((url.searchParams.get('exclude') || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean).slice(0, MAX_EXCLUDED));
+    const excludeIds = excludedIds(url.searchParams.get('exclude_id'));
 
     try {
-        const pick = await pickTitle(type, genre ? GENRES[type][genre] : '', exclude, region, env, doFetch);
+        const pick = await pickTitle(type, genre ? GENRES[type][genre] : '', exclude, excludeIds, region, env, doFetch);
         const details = await tmdb('/' + type + '/' + pick.id, { language: 'en-GB', append_to_response: 'watch/providers,videos' }, env, doFetch);
         const date = details.release_date || details.first_air_date || '';
         return json({

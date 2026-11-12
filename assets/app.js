@@ -34,6 +34,7 @@
         loading: false,
         current: null,
         seen: { movie: [], tv: [], anime: [] },
+        seenIds: { movie: [], tv: [], anime: [] },
         watchlist: sanitizeWatchlist(ui.get(WATCHLIST_KEY, []))
     };
 
@@ -125,9 +126,13 @@
         });
     }
 
-    function remember(type, title) {
-        var list = state.seen[type];
-        list.push(title);
+    function remember(type, title, id) {
+        rememberIn(state.seen[type], title);
+        if (typeof id === 'number') rememberIn(state.seenIds[type], id);
+    }
+
+    function rememberIn(list, value) {
+        list.push(value);
         if (list.length > CONFIG.rememberSeen) list.shift();
     }
 
@@ -197,6 +202,7 @@
         var params = new URLSearchParams({ type: state.type });
         if (state.genre) params.set('genre', state.genre);
         if (state.seen[state.type].length) params.set('exclude', state.seen[state.type].join(','));
+        if (state.seenIds[state.type].length) params.set('exclude_id', state.seenIds[state.type].join(','));
         var res = await fetchJson(CONFIG.workerUrl + '?' + params.toString());
         if (!res.ok || !res.body || res.body.error || !res.body.title) {
             throw new Error((res.body && res.body.error) || 'The film database did not answer properly. Try again in a moment.');
@@ -204,6 +210,7 @@
         var body = res.body;
         return {
             type: state.type,
+            tmdbId: typeof body.id === 'number' ? body.id : null,
             title: String(body.title),
             year: body.year || null,
             score: body.score || null,
@@ -397,7 +404,7 @@
         setLoading(true);
         try {
             var item = state.type === 'anime' ? await fetchAnime() : await fetchFromWorker();
-            remember(item.type, item.title);
+            remember(item.type, item.title, item.tmdbId);
             state.current = item;
             renderResult(item);
             if (item.type === 'anime') {
