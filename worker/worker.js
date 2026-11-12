@@ -23,6 +23,11 @@ function allowedOrigins(env) {
         .split(',').map(s => s.trim()).filter(Boolean);
 }
 
+function isForeignOrigin(request, env) {
+    const origin = request.headers.get('Origin');
+    return Boolean(origin) && !allowedOrigins(env).includes(origin);
+}
+
 function corsHeaders(request, env) {
     const origin = request.headers.get('Origin');
     const headers = { 'Vary': 'Origin' };
@@ -141,6 +146,7 @@ async function pickTitle(type, genreId, exclude, region, env, fetchImpl) {
 
 export async function handle(request, env, fetchImpl) {
     const doFetch = fetchImpl || fetch;
+    if (isForeignOrigin(request, env)) return json({ error: 'This helper only answers the media recommender page.' }, 403, request, env);
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders(request, env) });
     if (request.method !== 'GET') return json({ error: 'Only GET is supported.' }, 405, request, env);
     if (!env.TMDB_TOKEN && !env.TMDB_API_KEY) return json({ error: 'The recommender is not set up yet.' }, 500, request, env);

@@ -32,6 +32,8 @@ npx wrangler deploy
 
 `TMDB_TOKEN` is the "API Read Access Token" from your TMDB account settings. `TMDB_API_KEY` (the shorter v3 key) also works if you'd rather use that. `wrangler.toml` sets the route, `ALLOWED_ORIGINS` (comma-separated sites allowed to call it) and `REGION` (the default country for where-to-watch, `GB`).
 
+A browser request from any site not in `ALLOWED_ORIGINS` gets a 403 before TMDB is called. Requests that send no `Origin` header at all (curl, scripts) still get through, because there is no way to tell them apart from a direct visit, so add a Cloudflare rate-limiting rule for `api.drew-gnr.xyz/tmdb*` to protect the TMDB key's quota.
+
 The page calls `GET /tmdb?type=movie|tv&genre=<name>&exclude=<title,title>`, with an optional `region=US` style code, and gets back:
 
 ```json
