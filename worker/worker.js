@@ -153,9 +153,9 @@ export async function handle(request, env, fetchImpl) {
 
     const url = new URL(request.url);
     const type = url.searchParams.get('type') || 'movie';
-    if (!GENRES[type]) return json({ error: 'Type must be movie or tv.' }, 400, request, env);
+    if (!Object.hasOwn(GENRES, type)) return json({ error: 'Type must be movie or tv.' }, 400, request, env);
     const genre = (url.searchParams.get('genre') || '').toLowerCase();
-    if (genre && !GENRES[type][genre]) return json({ error: 'That genre is not available for this type.' }, 400, request, env);
+    if (genre && !Object.hasOwn(GENRES[type], genre)) return json({ error: 'That genre is not available for this type.' }, 400, request, env);
     const regionParam = (url.searchParams.get('region') || '').toUpperCase();
     const region = /^[A-Z]{2}$/.test(regionParam) ? regionParam : (env.REGION || 'GB');
     const exclude = new Set((url.searchParams.get('exclude') || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean).slice(0, 50));

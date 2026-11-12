@@ -79,6 +79,15 @@ assert.strictEqual(calls.length, 0, 'and TMDB is not called for it');
 res = await handle(new Request('https://x/tmdb', { method: 'OPTIONS', headers: { Origin: 'https://evil.example' } }), env, fakeFetch);
 assert.strictEqual(res.status, 403);
 
+calls.length = 0;
+res = await handle(new Request('https://x/tmdb?type=constructor'), env, fakeFetch);
+assert.strictEqual(res.status, 400, 'an inherited object name is not a type');
+res = await handle(new Request('https://x/tmdb?type=movie&genre=constructor'), env, fakeFetch);
+assert.strictEqual(res.status, 400, 'or a genre');
+res = await handle(new Request('https://x/tmdb?type=movie&genre=__proto__'), env, fakeFetch);
+assert.strictEqual(res.status, 400);
+assert.strictEqual(calls.length, 0, 'TMDB is not called for them');
+
 res = await handle(new Request('https://x/tmdb?type=anime'), env, fakeFetch);
 assert.strictEqual(res.status, 400);
 res = await handle(new Request('https://x/tmdb?type=tv&genre=horror'), env, fakeFetch);
