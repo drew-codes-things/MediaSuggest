@@ -52,6 +52,10 @@ function json(body, status, request, env) {
     });
 }
 
+function tmdbApiKey(env) {
+    return env.TMDB_API_KEY || env.TMDB_KEY;
+}
+
 function randomInt(max) {
     const buf = new Uint32Array(1);
     crypto.getRandomValues(buf);
@@ -63,7 +67,7 @@ async function tmdb(path, params, env, fetchImpl) {
     Object.entries(params || {}).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, String(v)); });
     const headers = { Accept: 'application/json' };
     if (env.TMDB_TOKEN) headers.Authorization = 'Bearer ' + env.TMDB_TOKEN;
-    else url.searchParams.set('api_key', env.TMDB_API_KEY);
+    else url.searchParams.set('api_key', tmdbApiKey(env));
     const res = await fetchImpl(url.toString(), { headers, cf: { cacheTtl: 21600, cacheEverything: true } });
     if (!res.ok) {
         const err = new Error(res.status === 401 ? 'The TMDB key was turned down.' : 'TMDB answered with an error (' + res.status + ').');
@@ -154,7 +158,7 @@ export async function handle(request, env, fetchImpl) {
     if (isForeignOrigin(request, env)) return json({ error: 'This helper only answers the media recommender page.' }, 403, request, env);
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders(request, env) });
     if (request.method !== 'GET') return json({ error: 'Only GET is supported.' }, 405, request, env);
-    if (!env.TMDB_TOKEN && !env.TMDB_API_KEY) return json({ error: 'The recommender is not set up yet.' }, 500, request, env);
+    if (!env.TMDB_TOKEN && !tmdbApiKey(env)) return json({ error: 'The recommender is not set up yet.' }, 500, request, env);
 
     const url = new URL(request.url);
     const type = url.searchParams.get('type') || 'movie';

@@ -1,4 +1,4 @@
-name = "mediarec-tmdb"
+name = "api"
 main = "worker.js"
 compatibility_date = "2026-10-01"
 routes = [{ pattern = "api.drew-gnr.xyz/tmdb*", zone_name = "drew-gnr.xyz" }]

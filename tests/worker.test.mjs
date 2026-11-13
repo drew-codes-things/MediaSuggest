@@ -73,6 +73,11 @@ assert.strictEqual(new URL(calls[0].url).searchParams.get('with_genres'), '80|96
 assert.strictEqual(new URL(calls[0].url).searchParams.get('api_key'), 'k');
 
 calls.length = 0;
+res = await handle(new Request('https://x/tmdb?type=movie', { headers: origin }), { TMDB_KEY: 'older-name' }, fakeFetch);
+assert.strictEqual(res.status, 200, 'the key name the live worker already stores is accepted');
+assert.strictEqual(new URL(calls[0].url).searchParams.get('api_key'), 'older-name');
+
+calls.length = 0;
 res = await handle(new Request('https://x/tmdb?type=movie', { headers: { Origin: 'https://evil.example' } }), env, fakeFetch);
 assert.strictEqual(res.status, 403, 'a browser on another site is refused');
 assert.strictEqual(calls.length, 0, 'and TMDB is not called for it');
