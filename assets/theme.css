@@ -396,3 +396,10 @@ code { font-family: var(--mono); font-size: .88em; color: var(--text); backgroun
     body { background: #fff; color: #000; }
     .topbar, .foot, .toast { display: none !important; }
 }
+
+@media (max-width: 820px), (pointer: coarse) {
+    input[type="text"], input[type="url"], input[type="search"], input[type="password"], input[type="number"], input[type="datetime-local"], select, textarea { font-size: 16px; }
+    .btn-ghost, .btn-quiet, .btn-danger, .opt, .brand, input[type="text"], input[type="url"], input[type="search"], input[type="password"], input[type="number"], input[type="datetime-local"], select, input[type="range"] { min-height: 44px; }
+    .brand { min-width: 44px; }
+    summary { padding-block: 12px; }
+}
